@@ -1,0 +1,5 @@
+-Os valores que vão ser ordenados por cada thread serão passados em uma struct
+-Essas structs tem que estar em um vetor
+-A quantidade de structs criadas tem que ser igual ao tamanho do vetor dividido pelo número de threads(podendo ser 2,4,8 ou 16)
+-Cada uma dessas structs vai ter o intervalo que cada thread será responsável
+-criação das threads = pthread_create (th[0], NULL,radix,struct[0])
