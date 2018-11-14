@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <time.h>
 #include "barrier.h" 
 #define TAMANHOMAX 100
 /* Bits of value to sort on. */
@@ -40,7 +41,7 @@ void copy_array (unsigned *dest, unsigned *src, int n)
     *dest++ = *src++;
 }
 
-/* Print array. */
+/*
 void print_array (unsigned *val, int n)
 {
   int i;
@@ -48,17 +49,9 @@ void print_array (unsigned *val, int n)
     printf ("%d \n", val[i]);
   printf ("\n");
 }
-
-/* Fill array with random values. */
-void random_array (unsigned *val, int n)
-{
-  int i;
-  for ( i = 0; i < n; i++ ) {
-  	val[i] = (unsigned)lrand48() & (unsigned)((1 << BITS) - 1);  	
-  }
-}
-
-/* Check if array is sorted. */
+*/
+/* 
+/* Checa se o vetor está ordenado. */
 int array_is_sorted (unsigned *val, int n)
 {
   int i;
@@ -69,17 +62,14 @@ int array_is_sorted (unsigned *val, int n)
 }
 
 
-/****************************************************************************\
- * Thread part of radix sort.
-\****************************************************************************/
 
 /* Individual thread part of radix sort. */
-void radix_sort_thread (unsigned *val, /* Array of values. */
-			unsigned *tmp,           /* Temp array. */
-			int start, int n,        /* Portion of array. */
-			int *nzeros, int *nones, /* Counters. */
-			int thread_index,        /* My thread index. */
-			int t)                   /* Number of theads. */
+void radix_sort_thread (unsigned *val, /* Vetor. */
+			unsigned *tmp,           /* Vetor temporário. */
+			int start, int n,        /* Pedaço do array. */
+			int *nzeros, int *nones, /* Contadores */
+			int thread_index,        /* Indíce da thread. */
+			int t)                   /* Número de threads */
 {
   /* THIS ROUTINE WILL REQUIRE SOME SYNCHRONIZATION. */
   /* MAYBE A CALL TO barrier() or TWO. */
@@ -88,16 +78,16 @@ void radix_sort_thread (unsigned *val, /* Array of values. */
   int bit_pos;
   int index0, index1;
   int i;
-  printf("###### Got in main function, thread %d\n", thread_index);
 
-  /* Initialize source and destination. */
+
+  /* Inicializa fonte e destina */
   src = val;
   dest = tmp;
 
-  /* For each bit... */
+  /* Para cada bit */
   for ( bit_pos = 0; bit_pos < BITS; bit_pos++ ) {
 
-    /* Count elements with 0 in bit_pos. */
+    /* Conta elementos com 0 na bit_pos */
     nzeros[thread_index] = 0;
     for ( i = start; i < start + n; i++ ) {
       if ( ((src[i] >> bit_pos) & 1) == 0 ) {
@@ -106,10 +96,10 @@ void radix_sort_thread (unsigned *val, /* Array of values. */
     }
     nones[thread_index] = n - nzeros[thread_index];
 	
-    /* Ensure all threads have reached this point, and then let continue */
+    /*Espera que todas as threads cheguem*/
     pthread_barrier_wait(&barrier);
 
-    /* Get starting indices. */
+    /* pega os índices de início */
     index0 = 0;
     index1 = 0;
     for ( i = 0; i < thread_index; i++ ) {
@@ -121,10 +111,10 @@ void radix_sort_thread (unsigned *val, /* Array of values. */
       index1 += nzeros[i];
 	}
 	
-    /* Ensure all threads have reached this point, and then let continue */
+    /* Espera que todas as threads cheguem */
     pthread_barrier_wait(&barrier);
 
-    /* Move values to correct position. */
+    /* Move valores para as posições corretas. */
     for ( i = start; i < start + n; i++ ) {
       if ( ((src[i] >> bit_pos) & 1) == 0 ) {
 	  	dest[index0++] = src[i];      	
@@ -133,91 +123,63 @@ void radix_sort_thread (unsigned *val, /* Array of values. */
       }
     }
 	
-    /* Ensure all threads have reached this point, and then let continue */
+    /* Espera que todas as threads cheguem */
     pthread_barrier_wait(&barrier);
 	
-    /* Swap arrays. */
+    /* troca os arrays. */
     tmp = src;
     src = dest;
     dest = tmp;
   }
-  printf ("\n====== Printing nzeros array of thread %d\n\n", thread_index);
-  print_array (nzeros, n);
-  printf ("\n====== Printing nones array of thread %d\n\n", thread_index);
-  print_array (nones, n);
-  // printf ("\n====== Printing val array of thread %d\n\n", thread_index);
-  // print_array (val, n);
-  // printf ("\n====== Printing temp array of thread %d\n\n", thread_index);
-  // print_array (dest, n);
 }
 
-// /* Thread main routine. */
-// void thread_main (struct rs_args *args)
-// {
-//   int start;
-//   int n;
-// 
-//   /* Get portion of array to process. */
-//   n = args->n / args->t; /* Number of elements this thread is in charge of */
-//   start = args->id * n; /* Thread is in charge of [start, start+n] elements */
-// 
-//   /* Perform radix sort. */
-//   radix_sort_thread (args->val, args->tmp, start, n,
-// 		     args->nzeros, args->nones, args->id, args->t);
-// }
 
 
 
-/* Thread main routine. */
 void thread_work (int rank)
 {
   int start, count, n;
   int index = rank;
-  printf("\n####### Thread_work: THREAD %d = %d \n\n", rank, args[index].id);
-  /* Ensure all threads have reached this point, and then let continue. */
-  // pthread_barrier_wait(&barrier);
   
-  /* Get portion of array to process. */
-  n = args[index].n / args[index].t; /* Number of elements this thread is in charge of */
-  start = args[index].id * n; /* Thread is in charge of [start, start+n] elements */
+  
+  /* Obtem qual porção do vetor irá ser processada. */
+  n = args[index].n / args[index].t; /* Número de elementos por qual essa thread está responsável */
+  start = args[index].id * n;/* Thread está responsável por [start, start +n elementos */
 
-  /* Perform radix sort. */
+  /* Executa radix sort. */
   radix_sort_thread (args[index].val, args[index].tmp, start, n,
   		     args[index].nzeros, args[index].nones, args[index].id, args[index].t);
 }
 
 
 
-/****************************************************************************\
- * Main part of radix sort.
-\****************************************************************************/
 
-/* Radix sort array. */
+
 void radix_sort (unsigned *val, int n, int t)
 {
   unsigned *tmp;
   int *nzeros, *nones;
   int r, i;
   
-  /* Thread-related variables. */
+  /* variáveis relacionadas a threads. */
   long thread;
   pthread_t* thread_handles;
 
-  /* Allocate temporary array. */
+  /* Aloca vetor temporário. */
   tmp = (unsigned *) malloc (n * sizeof(unsigned));
   if (!tmp) { fprintf (stderr, "Malloc failed.\n"); exit(1); }
 
-  /* Allocate counter arrays. */
+  /* Aloca vetores de contadores. */
   nzeros = (int *) malloc (t * sizeof(int));
   if (!nzeros) { fprintf (stderr, "Malloc failed.\n"); exit(1); }
   nones = (int *) malloc (t * sizeof(int));
   if (!nones) { fprintf (stderr, "Malloc failed.\n"); exit(1); }
 
-  /* Initialize thread handles and barrier. */
+  /* Inicializa as threads handles e a barrier. */
   thread_handles = malloc (t * sizeof(pthread_t));
   pthread_barrier_init (&barrier, NULL, t);
   
-  /* Initialize thread arguments. */
+  /* Inicializa argumentos da thread */
   for ( i = 0; i < t; i++ ) {
     args[i].id = i;
     args[i].val = val;
@@ -227,35 +189,35 @@ void radix_sort (unsigned *val, int n, int t)
     args[i].nones = nones;
     args[i].t = t;
 	
-	/* Create a thread. */
-	printf ("####### CREATING THREAD id = %d\n", args[i].id);
+	/* Cria uma thread. */
+	printf ("####### CRIANDO THREAD, id = %d\n", args[i].id);
     pthread_create (&thread_handles[i], NULL, thread_work, i);
   }
   
-  printf ("####### THREADS SHOULD BE WORKING NOW \n");
+  printf ("####### THREADS DEVEM ESTAR FUNCIONANDO \n");
   
   /* Wait for threads to join and terminate. */
   for ( i = 0; i < t; i++ ) {
     pthread_join (thread_handles[i], NULL);
-    printf ("####### THREAD %d SHOULD BE FINISHED \n", i);
+    printf ("####### THREAD %d DEVE ESTAR FINALIZADA \n", i);
   }
 
-  /* Free thread arguments. */
+  /* Libera argumentos da threads. */
   pthread_barrier_destroy(&barrier);
   free (thread_handles);
   free (args);
-
+ /*Printava o vetor antes de voltar para o main
   printf ("\n====== Before return to main: val array ======\n");
   print_array (val, n);
   printf ("\n====== Before return to main: tmp array ======\n");
   print_array (tmp, n);
-
-  /* Copy array if necessary. */
+*/
+  /* Copia vetor se necessário. */
   if ( BITS % 2 == 1 ) {
     copy_array (val, tmp, n);  	
   }
 
-  /* Free temporary array and couter arrays. */
+  /* libera o vetor temporário e vetores contadores */
   free (nzeros);
   free (nones);
   free (tmp);
@@ -271,6 +233,7 @@ int main(int argc, char *argv[])
   float parte=0.0;
   register int i=0;
   int numThreads;
+  double tempoGasto;
   numThreads=atoi(argv[1]);
   pthread_t thread[numThreads];
   args = (struct rs_args *) malloc (numThreads * sizeof(struct rs_args));
@@ -305,34 +268,17 @@ int main(int argc, char *argv[])
 }
   num = realloc(num, (i-1)*sizeof(unsigned));
   novoTamanhoVetor = i-1;
-/*    if (numThreads==2){
-     parte=novoTamanhoVetor/2;
-     ct vs[parte];
-      for (c=0;c<2;c++){
-      pthread_t tr[2];
-      pthread_create(tr[c],NULL,radixsort,vs[c])
-      radixsort(vs[c].valores[])
-      }
-   }else if(numThreads==4){
-     parte=novoTamanhoVetor/4;     
-      for (c=0;c<4;c++){
-       //insira criação de threads aqui?
-      }  
-   }else if(numThreads==8){
-     parte=novoTamanhoVetor/8
-
-   }else if(numThreads==16){
-    parte=novoTamanhoVetor/16
-
-   }*/
-  radix_sort (num,novoTamanhoVetor,numThreads);
+  clock_t begin = clock();
+   radix_sort (num,novoTamanhoVetor,numThreads);
+  clock_t end = clock();
+  tempoGasto=(double)(end-begin)/ CLOCKS_PER_SEC;
   printf("Tamanho vetor: %d\n", novoTamanhoVetor);
-  
+  printf("Tempo gasto: %lf\n",tempoGasto);
   fs = fopen(argv[argc-1], "w");
   for (i=0; i<novoTamanhoVetor; i++){
       fprintf(fs, "%i\n",num[i]);
     }
-   
+  printf("Arquivo gerado com sucesso\n"); 
   
   pthread_exit(NULL);
   return 0;
