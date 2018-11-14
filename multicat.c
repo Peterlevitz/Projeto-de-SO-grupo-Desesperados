@@ -8,33 +8,28 @@
 #include <time.h>
 #include "barrier.h" 
 #define TAMANHOMAX 100
-/* Bits of value to sort on. */
 #define BITS 29
 
-/* Synchronization tools. */
 #define BARRIER_COUNT 1000
 pthread_barrier_t barrier;
 
-/* Thread arguments for radix sort. */
+/* Argumentos da thread para o radix sort */
 struct rs_args {
-  int id;         /* thread index. */
-  unsigned *val;  /* array. */
-  unsigned *tmp;  /* temporary array. */
-  int n;          /* size of array. */
-  int *nzeros;    /* array of zero counters. */
-  int *nones;     /* array of one counters. */
-  int t;          /* number of threads. */
+  int id;         /* index da thread */
+  unsigned *val;  /* vetor */
+  unsigned *tmp;  /* vetor temporário */
+  int n;          /* tamanho do array */
+  int *nzeros;    /* contador de vetores de zeros */
+  int *nones;     /* contador de vetores de um */
+  int t;          /* número de threads */
 };
 
-/* Global variables and utilities. */
+/* Variáveis globais e utilidades. */
 struct rs_args *args;
 
 
-/****************************************************************************\
- * Array utilities.
-\****************************************************************************/
 
-/* Copy array. */
+
 void copy_array (unsigned *dest, unsigned *src, int n)
 {
   for ( ; n > 0; n-- )
